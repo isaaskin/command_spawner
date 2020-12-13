@@ -34,3 +34,9 @@ Command Spawner runs commands at background and provides live output, error and 
                                      shell=False,  # If True, the command will be executed through the shell (not recommended)
                                      daemon=False  # If True, current runtime will not wait for commands to be executed 
                                      )
+    
+    # The method to kill the current process
+    command_spawner.kill()
+    
+    # The method to wait for the process to be finished
+    command_spawner.wait()

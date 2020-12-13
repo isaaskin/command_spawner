@@ -1,8 +1,8 @@
 """
 Command Spawner is a non-blocking command runner library for Python
 """
+import os
 import subprocess as sp
-from os import getpgid, killpg, setsid
 from shlex import split
 from signal import SIGTERM
 from sys import platform
@@ -122,7 +122,7 @@ class CommandSpawner:
                                         stdout=sp.PIPE,
                                         stderr=sp.PIPE,
                                         shell=self.shell,
-                                        preexec_fn=setsid)
+                                        preexec_fn=os.setsid)
         except Exception as exception:
             self.handle_callbacks('exception', exception)
 
@@ -155,4 +155,4 @@ class CommandSpawner:
                 sp.Popen(f"TASKKILL /F /PID {self.process.pid} /T >NUL",
                          shell=True)
             else:
-                killpg(getpgid(self.process.pid), SIGTERM)
+                os.killpg(os.getpgid(self.process.pid), SIGTERM)
