@@ -32,5 +32,5 @@ Command Spawner runs commands at background and provides live output, error and 
                                      on_finished_callback=on_finished,  # Suppress return code when it is not provided
                                      on_exception_callback=on_exception,  # Raise exception on runtime when it is not provided
                                      shell=False,  # If True, the command will be executed through the shell (not recommended)
-                                     daemon=False  # If True, current runtime will not wait commands to be executed 
+                                     daemon=False  # If True, current runtime will not wait for commands to be executed 
                                      )
