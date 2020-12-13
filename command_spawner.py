@@ -1,44 +1,54 @@
 """
-Spawner is a non-blocking command runner library
+Command Spawner is a non-blocking command runner library for Python
 """
 import subprocess as sp
-import threading
-from select import select
+from os import getpgid, killpg, setsid
 from shlex import split
-import time
+from signal import SIGTERM
+from sys import platform
+from threading import Thread
 
 
-class Spawner:
+class CommandSpawner:
     """
-    Spawner class
+    Command Spawner class
     """
     def __init__(self,
                  command,
-                 on_data_callback=None,
+                 on_output_callback=None,
                  on_error_callback=None,
                  on_finished_callback=None,
+                 on_exception_callback=None,
                  shell=False,
                  daemon=False):
         """
         Initialize the class with the command and the callback functions
-        :param command:
-        :param on_data_callback:
-        :param on_error_callback:
-        :param on_finished_callback:
+        :param command: The command to be executed
+        :param on_output_callback: The function to be called when new stdout
+        data has been received
+        :param on_error_callback: The function to be called when new stderr
+        data has been received
+        :param on_finished_callback: The function to be called when the
+        command execution has finished
+        :param on_exception_callback: The function to be called
+        when exception has been thrown from the process module
         """
         # Assign command
         self.command = command
 
         # Assign callback functions
-        self.on_data_callback = on_data_callback
-        self.on_error_callback = on_error_callback
-        self.on_finished_callback = on_finished_callback
+        self.callback_functions = {
+            'output': on_output_callback,
+            'error': on_error_callback,
+            'finished': on_finished_callback,
+            'exception': on_exception_callback
+        }
 
         # Assign shell value
         self.shell = shell
 
         # Assign daemon value
-        self.daemon = shell
+        self.daemon = daemon
 
         # Declare null thread objects for output and error listening
         self.thread_listen_output = None
@@ -46,6 +56,17 @@ class Spawner:
 
         # Declare null process object
         self.process = None
+
+    def handle_callbacks(self, callback_type, data):
+        """
+        The function to handle the callbacks
+        """
+        callback_function = self.callback_functions.get(callback_type)
+        if callback_function:
+            callback_function(data)
+            return
+        if callback_type == 'exception':
+            raise data
 
     def listen_output(self):
         """
@@ -55,13 +76,15 @@ class Spawner:
         while True:
             # Read output data from the stdout stream
             output = self.process.stdout.readline()
-            # If output is not null or empty then convey it to the callback function
-            if output:
-                self.on_data_callback(output.decode('utf-8'))
             # Check if process has finished by return code
-            if self.process.poll() is not None:
-                # If there is return code then convey it to the callback function and break the loop
-                self.on_finished_callback(self.process.poll())
+            if output:
+                self.handle_callbacks('output', output.decode('utf-8'))
+            # If output is not null and empty then convey it
+            # to the callback function
+            if self.process.poll() is not None and output == b'':
+                # If there is return code then convey it
+                # to the callback function and break the loop
+                self.handle_callbacks('finished', self.process.poll())
                 break
 
     def listen_error(self):
@@ -70,21 +93,15 @@ class Spawner:
         :return:
         """
         while True:
-            # Check if stderr stream is available, or break the loop
-            if self.process.stderr:
-                # Read the buffer whether there is data in inside
-                buffer, _, _ = select([self.process.stderr], [], [], 0)
-                # If buffer is not null then it means there is data to read
-                if buffer:
-                    # Convey the error data to the callback function
-                    self.on_error_callback(self.process.stderr.readline())
-                # If there is return code then break the loop
-                if self.process.poll():
-                    break
-            else:
+            # Read error data from the stdout stream
+            output = self.process.stderr.readline()
+            # If output is not null and empty then convey it
+            # to the callback function
+            if output:
+                self.handle_callbacks('error', output.decode('utf-8'))
+            # Check if process has finished by return code
+            if self.process.poll() is not None and output == b'':
                 break
-            # Avoid excessive CPU load
-            time.sleep(0.05)
 
     def run(self):
         """
@@ -92,16 +109,31 @@ class Spawner:
         :return:
         """
         # Creates a process with the given command
-        if self.shell:
+        if not self.shell:
             self.command = split(self.command)
-        self.process = sp.Popen(self.command, stdout=sp.PIPE, stderr=sp.PIPE, shell=self.shell)
+        try:
+            if platform == 'win32':
+                self.process = sp.Popen(self.command,
+                                        stdout=sp.PIPE,
+                                        stderr=sp.PIPE,
+                                        shell=self.shell)
+            else:
+                self.process = sp.Popen(self.command,
+                                        stdout=sp.PIPE,
+                                        stderr=sp.PIPE,
+                                        shell=self.shell,
+                                        preexec_fn=setsid)
+        except Exception as exception:
+            self.handle_callbacks('exception', exception)
 
         # Initialize the output listening thread and start it
-        self.thread_listen_output = threading.Thread(target=self.listen_output)
+        self.thread_listen_output = Thread(target=self.listen_output,
+                                           daemon=self.daemon)
         self.thread_listen_output.start()
 
         # Initialize the error listening thread and start it
-        self.thread_listen_error = threading.Thread(target=self.listen_error)
+        self.thread_listen_error = Thread(target=self.listen_error,
+                                          daemon=self.daemon)
         self.thread_listen_error.start()
 
     def wait(self):
@@ -119,4 +151,8 @@ class Spawner:
         :return:
         """
         if not self.process.poll():
-            self.process.kill()
+            if platform == 'win32':
+                sp.Popen(f"TASKKILL /F /PID {self.process.pid} /T >NUL",
+                         shell=True)
+            else:
+                killpg(getpgid(self.process.pid), SIGTERM)
