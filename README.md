@@ -1,3 +1,4 @@
+[![Python package](https://github.com/isaaskin/command_spawner/actions/workflows/python-package.yml/badge.svg?branch=main)](https://github.com/isaaskin/command_spawner/actions/workflows/python-package.yml)
 # Command Spawner  
 Command Spawner is a non-blocking command runner library for Python.  
   
