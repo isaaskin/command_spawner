@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 import pathlib
 
-VERSION = '1.1.2'
+VERSION = '1.1.3'
 DESCRIPTION = 'Command Spawner'
 
 # The directory containing this file
