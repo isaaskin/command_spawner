@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 import pathlib
 
-VERSION = '1.1.1'
+VERSION = '1.1.2'
 DESCRIPTION = 'Command Spawner'
 
 # The directory containing this file
@@ -21,7 +21,7 @@ setup(
     packages=find_packages(),
     install_requires=[],  # add any additional packages that
     keywords=['python', 'command spawner', 'spawn', 'command', 'shell',
-              'bash'],
+              'bash', 'command spawn'],
     lassifiers=[
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3",
