@@ -5,6 +5,12 @@ Command Spawner is a non-blocking command runner library for Python.
   
 Command Spawner runs commands at background and provides live output, error and finish data through the provided callback functions.
 
+# Installing
+Install and update using pip:
+```bash
+pip install command-spawner
+```
+
 # Example usage
 ```python
 # Triggered when received new stdout

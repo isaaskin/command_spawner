@@ -19,6 +19,7 @@ setup(
     long_description=README,
     long_description_content_type="text/markdown",
     packages=find_packages(),
+    url="https://github.com/isaaskin/command_spawner",
     install_requires=[],  # add any additional packages that
     keywords=['python', 'command spawner', 'spawn', 'command', 'shell',
               'bash', 'command spawn'],
