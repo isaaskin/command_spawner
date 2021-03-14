@@ -8,7 +8,7 @@ Command Spawner runs commands at background and provides live output, error and 
 # Installing
 Install and update using pip:
 ```bash
-pip install command-spawner
+$ pip install command-spawner
 ```
 
 # Example usage
